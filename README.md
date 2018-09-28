@@ -23,7 +23,7 @@ Play presidenten via LAN multiplayer using python.
  
  ### Optional:
  * [ ] background
- * 
+  
  * [ ] ingame chat
  * [ ] rework multithreading
  * [ ] convert to .exe
