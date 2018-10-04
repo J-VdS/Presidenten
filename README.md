@@ -2,9 +2,14 @@
 Play presidenten via LAN multiplayer using python.
 
 ### TODO:
+  #### Essentials:
+ * [ ] host listener
+ * [ ] host send data
+ * [ ] host decode and use data
+
   #### Networking:
  * [ ] functional host
- * [ ] functional join
+ * [X] functional join
  * [ ] custom port
  * [ ] connection name via tkinter.Entry
  * [ ] view number of cards
@@ -13,7 +18,7 @@ Play presidenten via LAN multiplayer using python.
   ### Game mechanics:
  * [ ] skip event
  * [ ] pas event 
- * [ ] add 2 functionality
+ * [X] add 2 functionality
  * [ ] view number of cards (II)
  * [ ] draw highest hand
  * [ ] draw pas icon
