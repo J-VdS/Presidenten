@@ -2,10 +2,7 @@ import random
 import time
 import socket
 import threading
-
 import presi_func
-
-
 from tkinter import *
 
 
@@ -46,28 +43,62 @@ class window:
         debug.add_command(label='setup join', command=self.join_setup)
         debug.add_command(label='close', command=self.destroy)
         menu.add_cascade(label='Test', menu=debug)
+
+        self.draw()
         
         
         #mouse_input
         self.canvas.bind_all('<Button-1>', self.click)
         
         #player stuff
-        self.passed = False
         self.twos = 0
-        self.turn = True #change
+        self.turn = False #change
         self.cards = []
         self.highest = None #(combination, player)
+        self.players = {} #name:[plob number, num of cards]
         self.last_click = None
         self.status = None
+        self.drawer = None      
 
-        
-        #init op false normaal dit zou alles spel/click commands moeten starten
-        self.started = True
-        
-
+        self.data = None
 
         #init loop
         #self.loop()
+
+    def draw(self):
+        self.plob = {}
+        self.plob[1]=[self.canvas.create_text(
+                          50, 20, text='player', font=('helvetica',12)),
+                      self.canvas.create_rectangle(
+                          30, 35, 70, 95, fill='#abcabc'),
+                      self.canvas.create_text(
+                          50, 50, text='NA'),
+                      self.canvas.create_polygon(
+                          40, 0, 60, 0, 50, 15, fill='red',
+                          state='hidden')]
+        #player 2
+        self.plob[2]=[self.canvas.create_text(
+                          50, 130, text='player', font=('helvetica',12)),
+                      self.canvas.create_rectangle(
+                          30, 145, 70, 205, fill='#abcabc'),
+                      self.canvas.create_text(
+                          50, 160, text='NA'),
+                      self.canvas.create_polygon(
+                          40, 110, 60, 110, 50, 125, fill='red',
+                          state='hidden')]
+        #player 3
+        self.plob[3]=[self.canvas.create_text(
+                          50, 240, text='player', font=('helvetica',12)),
+                      self.canvas.create_rectangle(
+                          30, 255, 70, 315, fill='#abcabc'),
+                      self.canvas.create_text(
+                          50, 270, text='NA'),
+                      self.canvas.create_polygon(
+                          40, 220, 60, 220, 50, 235, fill='red',
+                          state='hidden')]
+
+        self.tk.update()
+
 
     def loop(self):
         while 1:
@@ -75,6 +106,9 @@ class window:
                 self.tk.update()
                 self.tk.update_idletasks()
                 time.sleep(1/30)
+                if self.data:
+                    self.verwerk(self.data)
+                    self.do = None
             except:
                 return
             
@@ -104,9 +138,17 @@ class window:
                 self.cardlocs[j] = [[100+i*card_width, 100+(i+1)*card_width],
                                     [ca, ct]]          
         self.tk.update()
+
+    def delete_all(self):
+        for i in self.cardlocs.keys():
+            for j in self.cardlocs[i][1]:
+                self.canvas.delete(j)
+        self.cardlocs = {}
+        self.cards = []
+        print(self.cardlocs)
         
     def click(self, evt):
-        if not self.started or not self.turn:
+        if not self.turn:
             return
         y = self.tk.winfo_pointery() - self.tk.winfo_rooty()
         if y < 350:
@@ -140,13 +182,17 @@ class window:
 
     def check(self, card):
         #todo add 2 support
-        hand = self.twos*'2'+self.cards.count(card)*card
+        hand = ['2']*self.twos + self.cards.count(card)*[card]
+        print(self.highest)
         if self.highest:
             if presi_func.check(hand, self.highest[0]):
+                print(self.highest[0])
+                self.highest = (hand, 'player') #(combination, player)
                 self.delete_cards(card)
             else:
                 return False
         else:
+            self.highest = (hand, 'player') #(combination, player)
             self.delete_cards(card)
 
         self.send(hand)
@@ -167,8 +213,8 @@ class window:
 
     #buttons on screen 'forever'
     def pas(self):
-        self.passed = True
-        self.send("pass")
+        self.turn = False
+        self.send('')
 
     def two(self):
         self.counter_2 = self.cards.count('2')
@@ -192,24 +238,24 @@ class window:
         if 1:
             return 
         #begin eerst met de luister methode
-        if not self.status:
-            port = 6567 #todo add custom port
-            try:
-                players = int(input('number of players: '))
-            except Exception as e:
-                print('STARTUP FAILED')
-                print(e)
-                return
-
-            self.status = True
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.bind(('0.0.0.0', port))
-            self.socket.listen(1)
-            print('server running on port: ', port)
-            self.h_thread = threading.Thread(target=self.server, args=(players,))
-            self.h_thread.deamon = True
-            #start thread
-            self.h_thread.start()
+##        if not self.status:
+##            port = 6567 #todo add custom port
+##            try:
+##                players = int(input('number of players: '))
+##            except Exception as e:
+##                print('STARTUP FAILED')
+##                print(e)
+##                return
+##
+##            self.status = True
+##            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+##            self.socket.bind(('0.0.0.0', port))
+##            self.socket.listen(1)
+##            print('server running on port: ', port)
+##            self.h_thread = threading.Thread(target=self.server, args=(players,))
+##            self.h_thread.deamon = True
+##            #start thread
+##            self.h_thread.start()
             
     #networking joiner
     def join_setup(self):
@@ -256,39 +302,53 @@ class window:
                 data = self.socket.recv(128) #arbitrair getal
                 if not data:
                     break
-                if self.verwerk(data):
-                    break
+                self.data = data.decode()
         except Exception as e:
             print(e)
         finally:
             self.socket.close()
             self.status = None
             print('connection closed')
+            self.turn = False #close interaction
     
-    def send(self, msg):
+    def send(self, hand):
+        print('test')
         if self.status == 'host':
             pass
         else:
             #self.status == 'client'
-            pass
+            msg = str(len(hand)+1)+''.join(hand) #list -> string
+            self.socket.send(msg.encode())
+            print('sended ', msg)
 
     def verwerk(self, data):
-        print(data.decode())
-        data = data.decode()
-        if data[0] == '2':
-            print(data)
-            return True
+        print(data*5)
+        print('------')
+        print(len(data))
+        if data[0] == '0':
+            #set playernames + num of cards
+            #06player13 ->0+(len player name+1)+num of cards
+            data = data[1:]
+            j = int(data[0])
+            print(j)
+            self.players[1] = [data[1:j], data[j:j+1]]
+            j += 3 + int(data[3+j])
+            self.players[2] = [data[1:j], data[j:j+1]]
+            j += 3 + int(data[3+j])
+            self.players[3] = [data[1:j], data[j:j+1]]
+            for i in self.players.keys():
+                self.canvas.itemconfig(
+                    self.plob[int(i)][0], text=self.players[i][0])
+                self.canvas.itemconfig()(
+                    self.plob[int(i)][2], text=self.players[i][1])  
         elif data[0] == '1':
             self.turn = True
-        #decode message
-        #yourturn-number of cards-playername
-        
-        
-
-
-        
-        return False
-        
+        elif 0 == 1:
+            #decode message
+            #yourturn-number of cards-playername
+            pass
+        else:
+            return False
 
     def destroy(self):
         self.tk.destroy()

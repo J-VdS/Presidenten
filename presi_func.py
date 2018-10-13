@@ -14,19 +14,19 @@ def sort(hand):
     values = {'1': 14, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
               '8': 8, '9': 9, '10': 10, 'J': 11, 'Q':12, 'K':13}
     hand.sort(key=lambda x: values[x])
-    print(hand)
 
     
 def waarde(hand):
     values = {'1': 14, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
               '8': 8, '9': 9, '10': 10, 'J': 11, 'Q':12, 'K':13}
+
     hand.sort(key=lambda x:values[x])
-    return hand[-1]
+    return values[hand[-1]]
 
 def check(nieuwhand, oudhand):
     if len(nieuwhand) > len(oudhand):
         return True
-    elif waarde(nieuwhand) > waarde(oudhand):
+    elif waarde(nieuwhand) > waarde(oudhand) and len(nieuwhand)==len(oudhand):
         return True
     else:
         return False
