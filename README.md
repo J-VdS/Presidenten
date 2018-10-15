@@ -12,21 +12,27 @@ Play presidenten via LAN multiplayer using python.
  * [X] functional join
  * [ ] custom port
  * [ ] connection name via tkinter.Entry
- * [ ] view number of cards
+ * [X] view number of cards
  * [ ] closing ports
   
-  ### Game mechanics:
+  #### Game mechanics:
  * [ ] skip event
- * [ ] pas event 
+ * [X] pas event 
  * [X] add 2 functionality
- * [ ] view number of cards (II)
- * [ ] draw highest hand
+ * [X] view number of cards (II)
+ * [X] draw highest hand
  * [ ] draw pas icon
- * [ ] draw player icon
+ * [X] draw player icon
  
  * [ ] label, entry, button location and interaction
  
- ### Optional:
+ #### test_server_host:
+ * [X] player loop
+ * [X] restart after 3 players without cards
+ * [ ] change starting player after one finished game loop
+ 
+ 
+ #### Optional:
  * [ ] background
   
  * [ ] ingame chat
