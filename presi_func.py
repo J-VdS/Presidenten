@@ -1,6 +1,6 @@
 import random
 
-def deel(spelers, dekken=1):
+def deel(spelers=4, dekken=1):
     kaarten = ['1','2','3','4','5','6','7','8','9','10','J','Q','K']*4*dekken
     random.shuffle(kaarten)
     handen = [[] for _ in range(spelers)]

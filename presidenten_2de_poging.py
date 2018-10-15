@@ -17,7 +17,9 @@ class window:
         self.tk.update()
         self.canvas = Canvas(self.tk,
                              width=800,
-                             height=400)
+                             height=400,
+                             bd=0,
+                             highlightthickness=0)
         self.canvas.place(x=0, y=0)
         
         b_p = Button(self.tk,
@@ -42,6 +44,7 @@ class window:
         debug.add_command(label='setup host', command=self.host_setup)
         debug.add_command(label='setup join', command=self.join_setup)
         debug.add_command(label='close', command=self.destroy)
+        debug.add_command(label='verwerk', command=self.dumb)
         menu.add_cascade(label='Test', menu=debug)
 
         self.draw()
@@ -58,7 +61,7 @@ class window:
         self.players = {} #name:[plob number, num of cards]
         self.last_click = None
         self.status = None
-        self.drawer = None      
+        self.cardlocs = {}      
 
         self.data = None
 
@@ -72,7 +75,7 @@ class window:
                       self.canvas.create_rectangle(
                           30, 35, 70, 95, fill='#abcabc'),
                       self.canvas.create_text(
-                          50, 50, text='NA'),
+                          50, 50, text='NA', font=('helvetica',12)),
                       self.canvas.create_polygon(
                           40, 0, 60, 0, 50, 15, fill='red',
                           state='hidden')]
@@ -82,7 +85,7 @@ class window:
                       self.canvas.create_rectangle(
                           30, 145, 70, 205, fill='#abcabc'),
                       self.canvas.create_text(
-                          50, 160, text='NA'),
+                          50, 160, text='NA', font=('helvetica',12)),
                       self.canvas.create_polygon(
                           40, 110, 60, 110, 50, 125, fill='red',
                           state='hidden')]
@@ -92,11 +95,32 @@ class window:
                       self.canvas.create_rectangle(
                           30, 255, 70, 315, fill='#abcabc'),
                       self.canvas.create_text(
-                          50, 270, text='NA'),
+                          50, 270, text='NA', font=('helvetica',12)),
                       self.canvas.create_polygon(
                           40, 220, 60, 220, 50, 235, fill='red',
                           state='hidden')]
-
+        #kader hoogste hand
+        self.canvas.create_rectangle(250, 100, 550, 200, fill='#abcabc')
+        #info widget + kaarten
+        self.info = [self.canvas.create_text(
+            0, 400, text='waiting', font=('Helvetica', 10),
+            anchor='sw', fill='#10dd00'),
+                     self.canvas.create_text(
+            255, 100, font=('Helvetica', 10), anchor='nw')]
+        #kaarten voorlopig onzichtbaar
+        for i in range(8):
+            self.info.append(
+                [self.canvas.create_rectangle(
+                    255+i*37, 120,
+                    287+i*37, 190,
+                    fill='#ffffff',
+                    state='hidden'),#hidden
+                self.canvas.create_text(
+                    260+i*37, 125,
+                    text='10',
+                    anchor='nw',
+                    state='hidden')])#hidden
+        
         self.tk.update()
 
 
@@ -105,18 +129,18 @@ class window:
             try:
                 self.tk.update()
                 self.tk.update_idletasks()
-                time.sleep(1/30)
+                time.sleep(1/60)
                 if self.data:
                     self.verwerk(self.data)
-                    self.do = None
-            except:
-                return
-            
+                    self.data = None
+            except Exception as e:
+                print(e)
+                break
+        
         
 
     def set_cards(self, cards):
         self.cards = sorted(cards, key=lambda x: presi_func.values[x])
-        self.cardlocs = {}
         card_width = 600/len(self.cards)
         for i, j in enumerate(self.cards):
             ca = self.canvas.create_rectangle(100+i*card_width,
@@ -137,6 +161,9 @@ class window:
             else:
                 self.cardlocs[j] = [[100+i*card_width, 100+(i+1)*card_width],
                                     [ca, ct]]          
+        for i,j in self.info[2:]:
+            self.canvas.itemconfig(i, state='hidden')
+            self.canvas.itemconfig(j, state='hidden')
         self.tk.update()
 
     def delete_all(self):
@@ -214,7 +241,7 @@ class window:
     #buttons on screen 'forever'
     def pas(self):
         self.turn = False
-        self.send('')
+        self.send('0')
 
     def two(self):
         self.counter_2 = self.cards.count('2')
@@ -278,11 +305,15 @@ class window:
         self.h_thread.join()
     
 
-    def dumb2(self):
-        print('d2')
-        self.l.pack_forget()
-        self.tk.update()
-        
+    def dumb(self):
+        a = input('>')
+        try:
+            self.verwerk(a)
+        except Exception as e:
+            print(e)
+        #self.l.pack_forget()
+        #self.tk.update()
+        #
     #networking
     def listener(self):
         ip_host = None
@@ -295,14 +326,17 @@ class window:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #not necessary
         try:
+            name = 'success! '+input('name: ')
             self.socket.connect((ip_host, 6567))
-            self.socket.send('success'.encode()) #controle stuur naam speler
+            self.socket.send(name.encode()) #controle stuur naam speler
             #start listening
             while True:
                 data = self.socket.recv(128) #arbitrair getal
                 if not data:
                     break
-                self.data = data.decode()
+                data = data.decode()
+                if data == '9': break
+                self.data = data
         except Exception as e:
             print(e)
         finally:
@@ -317,44 +351,90 @@ class window:
             pass
         else:
             #self.status == 'client'
-            msg = str(len(hand)+1)+''.join(hand) #list -> string
+            if hand != '0':
+                msg = str(len(hand))+''.join(hand) #list -> string
+            else:
+                msg = hand
             self.socket.send(msg.encode())
             print('sended ', msg)
 
     def verwerk(self, data):
-        print(data*5)
-        print('------')
-        print(len(data))
+        print(len(data), data)
+        print(data[0])
         if data[0] == '0':
             #set playernames + num of cards
             #06player13 ->0+(len player name+1)+num of cards
-            data = data[1:]
-            j = int(data[0])
-            print(j)
-            self.players[1] = [data[1:j], data[j:j+1]]
-            j += 3 + int(data[3+j])
-            self.players[2] = [data[1:j], data[j:j+1]]
-            j += 3 + int(data[3+j])
-            self.players[3] = [data[1:j], data[j:j+1]]
-            for i in self.players.keys():
-                self.canvas.itemconfig(
-                    self.plob[int(i)][0], text=self.players[i][0])
-                self.canvas.itemconfig()(
-                    self.plob[int(i)][2], text=self.players[i][1])  
+            j = int(data[1:3])
+            data = data[3:]
+            self.players[data[0:j]] = [1, int(data[j:j+2])]
+            data = data[j+2:]
+            j = int(data[0:2])
+            self.players[data[2:j+2]] = [2, int(data[j+2:j+4])]
+            data = data[j+4:]
+            j = int(data[0:2])
+            self.players[data[2:j+2]] = [3, int(data[j+2:j+4])]
+            for i,j in enumerate(list(self.players.keys())):
+                i+=1
+                self.canvas.itemconfig(self.plob[i][0],
+                                       text=j)
+                self.canvas.itemconfig(self.plob[i][2],
+                                       text=self.players[j][1])
+                self.tk.update()
+       
         elif data[0] == '1':
-            self.turn = True
-        elif 0 == 1:
-            #decode message
-            #yourturn-number of cards-playername
-            pass
+            if data[1] == '1':
+                if len(self.cards) == 0:
+                    self.send('0')
+                    
+                self.turn = True
+                self.canvas.itemconfig(self.info[0], text='Your turn')
+            else:
+                self.canvas.itemconfig(
+                    self.plob[self.players[data[2:]][0]][3],
+                    state='normal')
+                
+                
+        elif data[0] == '2':
+            j = int(data[1]) #len of cards
+            #width = 30, heigth=70
+            if j == 0:
+                #vorige persoon heeft gepast
+                pass
+            else:
+                for i, (k, t) in enumerate(self.info[2:j+2]):
+                    self.canvas.itemconfig(k, state='normal')
+                    kaart = data[i+2]
+                    self.canvas.itemconfig(
+                        t, state='normal', text=kaart,
+                        fill='#ff0000' if (kaart=='2') else '#000000')
+                self.highest = [data[2:j+2], data[j+2:]]
+                print(self.highest)
+                data = data[j+2:]
+                self.highest[1] = data
+                self.canvas.itemconfig(self.info[1],
+                                       text=data)
+                self.players[data][1] -= j
+                self.canvas.itemconfig(
+                    self.plob[self.players[data][0]][2],
+                    text=self.players[data][1])
+                self.canvas.itemconfig(
+                    self.plob[self.players[data][0]][3],
+                    state='hidden')
+        elif data[0] == '3':
+            #set cards:
+            self.delete_all()
+            self.set_cards([i for i in data[1:]])
+            for i in self.plob.keys():
+                self.canvas.itemconfig(self.plob[i][2], text=13)       
         else:
             return False
+                
+                                       
 
     def destroy(self):
         self.tk.destroy()
 
 a = window()
-a.set_cards(['2', '2', 'K', '3', '6', '3', '7', '3', 'Q', '10', '7', '9', '6'])
+#a.set_cards(['2', '2', 'K', '3', '6', '3', '7', '3', 'Q', '10', '7', '9', '6'])
 
 a.loop()
-
